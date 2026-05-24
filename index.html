@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lumi</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#080810">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lumi">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #040408;
+  --deep: #080810;
+  --surface: #0e0e1a;
+  --glass: rgba(255,255,255,0.04);
+  --glass2: rgba(255,255,255,0.08);
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0eeff;
+  --muted: rgba(240,238,255,0.45);
+  --dim: rgba(240,238,255,0.25);
+  --violet: #7c5cfc;
+  --violet2: #9b7dff;
+  --rose: #fc5c8f;
+  --gold: #ffd166;
+  --teal: #5cfcd0;
+  --r: 16px;
+  --r2: 24px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; background:var(--void); }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:2px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--violet); border-radius:2px; }
+
+/* ── BACKGROUND ── */
+.bg-orbs {
+  position: fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+}
+.orb {
+  position:absolute; border-radius:50%; filter:blur(80px); opacity:0.12;
+}
+.orb1 { width:500px; height:500px; background:var(--violet); top:-100px; left:-100px; }
+.orb2 { width:400px; height:400px; background:var(--rose); bottom:-80px; right:-80px; }
+.orb3 { width:300px; height:300px; background:var(--teal); top:40%; left:30%; opacity:0.07; }
+
+/* ── APP SHELL ── */
+#app {
+  position: fixed; inset:0; z-index:1;
+  display: flex; flex-direction:column;
+  overflow: hidden;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  flex-shrink:0;
+  padding: env(safe-area-inset-top, 12px) 20px 0;
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+.topbar-inner {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.app-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.9rem; font-weight:300; letter-spacing:0.12em;
+  background: linear-gradient(135deg, #fff 0%, var(--violet2) 50%, var(--rose) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+}
+.top-actions { display:flex; gap:8px; align-items:center; }
+.icon-btn {
+  width:38px; height:38px; border-radius:50%;
+  background:var(--glass); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.2s; color:var(--muted);
+  backdrop-filter:blur(10px);
+}
+.icon-btn:hover { background:var(--glass2); color:var(--text); }
+.icon-btn svg { width:17px; height:17px; }
+
+/* ── STORAGE BAR ── */
+.storage-strip {
+  padding: 10px 0 2px;
+  display:flex; align-items:center; gap:10px;
+}
+.storage-label { font-size:0.7rem; color:var(--dim); font-weight:500; letter-spacing:0.05em; text-transform:uppercase; white-space:nowrap; }
+.storage-track {
+  flex:1; height:2px; background:var(--glass2); border-radius:2px; overflow:hidden;
+}
+.storage-fill {
+  height:100%; border-radius:2px;
+  background: linear-gradient(90deg, var(--violet), var(--rose));
+  transition: width 0.6s ease;
+}
+.storage-used { font-size:0.7rem; color:var(--muted); white-space:nowrap; }
+
+/* ── TABS ── */
+.tabs {
+  flex-shrink:0;
+  display:flex; gap:0; padding: 14px 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 8px 16px 12px; font-size:0.82rem; font-weight:500;
+  color:var(--muted); cursor:pointer; position:relative;
+  letter-spacing:0.03em; transition:color 0.2s;
+  background:none; border:none; font-family:'Outfit',sans-serif;
+}
+.tab.active { color:var(--text); }
+.tab.active::after {
+  content:''; position:absolute; bottom:-1px; left:16px; right:16px;
+  height:1.5px; background:linear-gradient(90deg,var(--violet),var(--rose));
+  border-radius:2px;
+}
+
+/* ── MAIN SCROLL ── */
+.main {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding: 0 0 80px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── PAGES ── */
+.page { display:none; animation:fadeIn 0.3s ease; }
+.page.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── EMPTY STATE ── */
+.empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding: 80px 40px; text-align:center; gap:16px;
+}
+.empty-icon { font-size:3.5rem; opacity:0.3; }
+.empty-title { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:300; color:var(--muted); }
+.empty-sub { font-size:0.82rem; color:var(--dim); line-height:1.7; }
+
+/* ── GRID ── */
+.grid-header {
+  padding: 20px 20px 12px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.grid-title {
+  font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:400;
+  color:var(--muted); letter-spacing:0.05em;
+}
+.grid-count { font-size:0.75rem; color:var(--dim); }
+
+.media-grid {
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:2px; padding:0 0 2px;
+}
+.media-item {
+  aspect-ratio:1; position:relative; overflow:hidden;
+  background:var(--surface); cursor:pointer;
+  transition:transform 0.2s;
+}
+.media-item:active { transform:scale(0.97); }
+.media-item img, .media-item video {
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform 0.4s ease;
+}
+.media-item:hover img, .media-item:hover video { transform:scale(1.05); }
+.media-item .vid-badge {
+  position:absolute; bottom:6px; right:6px;
+  background:rgba(0,0,0,0.6); border-radius:4px;
+  padding:2px 6px; font-size:0.62rem; color:white;
+  display:flex; align-items:center; gap:3px;
+  backdrop-filter:blur(4px);
+}
+.media-item .vid-badge svg { width:9px; height:9px; }
+.media-item .select-ring {
+  position:absolute; inset:0;
+  border:2.5px solid var(--violet); border-radius:2px;
+  display:none; background:rgba(124,92,252,0.15);
+}
+.media-item.selected .select-ring { display:block; }
+.media-item .check {
+  position:absolute; top:6px; right:6px;
+  width:20px; height:20px; border-radius:50%;
+  background:var(--violet); display:none; align-items:center; justify-content:center;
+}
+.media-item.selected .check { display:flex; }
+.media-item .check svg { width:11px; height:11px; color:white; }
+
+/* ── DATE SECTION ── */
+.date-section { margin-bottom:2px; }
+.date-label {
+  padding:14px 20px 8px;
+  font-size:0.72rem; font-weight:600; color:var(--dim);
+  text-transform:uppercase; letter-spacing:0.1em;
+}
+
+/* ── ALBUMS ── */
+.albums-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px; padding:20px;
+}
+.album-card {
+  background:var(--glass); border:1px solid var(--border);
+  border-radius:var(--r2); overflow:hidden; cursor:pointer;
+  transition:all 0.2s; position:relative;
+}
+.album-card:hover { border-color:var(--border2); transform:translateY(-2px); }
+.album-thumb {
+  aspect-ratio:1; background:var(--surface); position:relative; overflow:hidden;
+}
+.album-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.album-thumb-grid {
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; height:100%;
+}
+.album-thumb-grid img { width:100%; height:100%; object-fit:cover; display:block; border:1px solid var(--void); }
+.album-info { padding:12px 14px 14px; }
+.album-name { font-size:0.9rem; font-weight:500; color:var(--text); margin-bottom:3px; }
+.album-count { font-size:0.72rem; color:var(--muted); }
+.album-add {
+  aspect-ratio:1; background:var(--glass); border:1px dashed var(--border2);
+  border-radius:var(--r2); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:8px; cursor:pointer;
+  transition:all 0.2s; color:var(--muted);
+}
+.album-add:hover { background:var(--glass2); color:var(--text); }
+.album-add svg { width:24px; height:24px; }
+.album-add span { font-size:0.78rem; }
+
+/* ── SEARCH ── */
+.search-bar {
+  margin:16px 20px 0;
+  background:var(--glass); border:1px solid var(--border);
+  border-radius:13px; padding:11px 15px;
+  display:flex; align-items:center; gap:10px;
+  backdrop-filter:blur(10px);
+}
+.search-bar svg { width:16px; height:16px; color:var(--muted); flex-shrink:0; }
+.search-bar input {
+  background:none; border:none; outline:none;
+  color:var(--text); font-family:'Outfit',sans-serif; font-size:0.9rem; flex:1;
+}
+.search-bar input::placeholder { color:var(--dim); }
+
+/* ── FAB ── */
+.fab {
+  position:fixed; bottom:calc(70px + env(safe-area-inset-bottom, 0px));
+  right:20px; z-index:50;
+  width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg,var(--violet),var(--rose));
+  border:none; color:white; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 32px rgba(124,92,252,0.5);
+  transition:all 0.2s; font-family:'Outfit',sans-serif;
+}
+.fab:hover { transform:scale(1.08); box-shadow:0 12px 40px rgba(124,92,252,0.6); }
+.fab:active { transform:scale(0.95); }
+.fab svg { width:22px; height:22px; }
+
+/* ── BOTTOM NAV ── */
+.botnav {
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  background:rgba(8,8,16,0.92); backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);
+  display:flex; height:calc(58px + env(safe-area-inset-bottom, 0px));
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+.nav-btn {
+  flex:1; background:none; border:none; color:var(--muted);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; cursor:pointer; font-size:0.58rem; font-family:'Outfit',sans-serif;
+  transition:color 0.2s; position:relative; letter-spacing:0.04em;
+  text-transform:uppercase; font-weight:500;
+}
+.nav-btn.active { color:var(--violet2); }
+.nav-btn.active::before {
+  content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:24px; height:1.5px;
+  background:linear-gradient(90deg,var(--violet),var(--rose));
+  border-radius:0 0 3px 3px;
+}
+.nav-btn svg { width:20px; height:20px; }
+
+/* ── VIEWER ── */
+#viewer {
+  display:none; position:fixed; inset:0; z-index:200;
+  background:#000; flex-direction:column;
+}
+#viewer.open { display:flex; }
+.viewer-bar {
+  position:absolute; top:0; left:0; right:0; z-index:10;
+  padding:max(env(safe-area-inset-top),16px) 16px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+}
+.viewer-back {
+  width:38px; height:38px; background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.15); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; backdrop-filter:blur(10px);
+}
+.viewer-back svg { width:20px; height:20px; color:white; }
+.viewer-actions { display:flex; gap:8px; }
+.viewer-act {
+  width:38px; height:38px; background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.15); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; backdrop-filter:blur(10px); color:white;
+}
+.viewer-act svg { width:17px; height:17px; }
+.viewer-media {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+}
+#viewer-img {
+  max-width:100%; max-height:100%; object-fit:contain;
+  display:block; user-select:none;
+  transition:transform 0.1s;
+}
+#viewer-vid {
+  max-width:100%; max-height:100%; display:block;
+  background:#000;
+}
+.viewer-info {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:60px 20px 100px;
+  background:linear-gradient(transparent, rgba(0,0,0,0.85));
+}
+.viewer-date { font-size:0.75rem; color:rgba(255,255,255,0.5); margin-bottom:4px; }
+.viewer-name { font-size:0.9rem; color:white; font-weight:500; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:300;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(12px);
+  align-items:flex-end; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:28px 28px 0 0; padding:24px 20px;
+  padding-bottom:max(24px, env(safe-area-inset-bottom));
+  width:100%; max-width:640px;
+  animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  max-height:80vh; overflow-y:auto;
+}
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle { width:36px; height:4px; background:var(--border2); border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-weight:400; margin-bottom:18px; }
+.modal-input {
+  width:100%; background:var(--glass); border:1px solid var(--border);
+  border-radius:var(--r); padding:13px 16px; color:var(--text);
+  font-family:'Outfit',sans-serif; font-size:0.92rem; outline:none;
+  margin-bottom:12px; transition:border-color 0.2s;
+}
+.modal-input:focus { border-color:var(--violet); }
+.modal-btn {
+  width:100%; padding:14px; border-radius:var(--r); border:none;
+  background:linear-gradient(135deg,var(--violet),var(--rose));
+  color:white; font-family:'Outfit',sans-serif; font-weight:600;
+  font-size:0.95rem; cursor:pointer; transition:opacity 0.2s;
+}
+.modal-btn:hover { opacity:0.9; }
+.modal-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.modal-cancel {
+  width:100%; padding:11px; margin-top:8px; background:none; border:none;
+  color:var(--muted); font-family:'Outfit',sans-serif; font-size:0.85rem; cursor:pointer;
+}
+
+/* ── ALBUM PICKER ── */
+.album-pick-list { max-height:240px; overflow-y:auto; margin-bottom:12px; }
+.album-pick-item {
+  display:flex; align-items:center; gap:12px; padding:12px;
+  border-radius:12px; cursor:pointer; transition:background 0.15s;
+}
+.album-pick-item:hover { background:var(--glass); }
+.album-pick-thumb {
+  width:44px; height:44px; border-radius:10px; overflow:hidden;
+  background:var(--glass); flex-shrink:0; display:flex;
+  align-items:center; justify-content:center; color:var(--muted);
+}
+.album-pick-thumb img { width:100%; height:100%; object-fit:cover; }
+.album-pick-thumb svg { width:18px; height:18px; }
+.album-pick-name { font-size:0.9rem; color:var(--text); }
+.album-pick-count { font-size:0.72rem; color:var(--muted); margin-top:1px; }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--glass2); border:1px solid var(--border2);
+  backdrop-filter:blur(20px); padding:10px 18px; border-radius:12px;
+  font-size:0.82rem; z-index:500; opacity:0; transition:all 0.3s;
+  pointer-events:none; white-space:nowrap; color:var(--text);
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.ok { border-color:var(--teal); color:var(--teal); }
+.toast.err { border-color:var(--rose); color:var(--rose); }
+
+/* ── LOADER ── */
+.loader { display:flex; justify-content:center; padding:50px; }
+.spin {
+  width:28px; height:28px; border:2px solid var(--border2);
+  border-top-color:var(--violet); border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── PROGRESS ── */
+.upload-progress {
+  position:fixed; bottom:80px; left:20px; right:20px; z-index:400;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:16px 20px;
+  display:none; gap:12px; align-items:center;
+  backdrop-filter:blur(20px);
+}
+.upload-progress.show { display:flex; }
+.progress-info { flex:1; }
+.progress-label { font-size:0.82rem; color:var(--text); margin-bottom:6px; }
+.progress-track { height:3px; background:var(--glass2); border-radius:2px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--violet),var(--rose)); border-radius:2px; transition:width 0.3s; }
+
+/* ── SELECT MODE ── */
+.select-bar {
+  position:fixed; top:0; left:0; right:0; z-index:150;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:max(env(safe-area-inset-top),14px) 20px 14px;
+  display:none; align-items:center; gap:12px;
+  backdrop-filter:blur(20px);
+}
+.select-bar.show { display:flex; }
+.select-count { font-size:0.9rem; color:var(--text); font-weight:500; flex:1; }
+.select-acts { display:flex; gap:8px; }
+.select-act {
+  padding:7px 14px; border-radius:10px; border:1px solid var(--border2);
+  background:var(--glass); color:var(--text); font-family:'Outfit',sans-serif;
+  font-size:0.8rem; cursor:pointer; transition:all 0.2s;
+}
+.select-act.danger { border-color:rgba(252,92,143,0.3); color:var(--rose); }
+.select-act:hover { background:var(--glass2); }
+
+/* ── ALBUM VIEW ── */
+#album-view {
+  display:none; position:fixed; inset:0; z-index:100;
+  background:var(--deep); flex-direction:column;
+}
+#album-view.open { display:flex; }
+.album-view-bar {
+  padding:max(env(safe-area-inset-top),14px) 16px 14px;
+  display:flex; align-items:center; gap:12px;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.album-view-back {
+  width:36px; height:36px; background:var(--glass); border:1px solid var(--border);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--text);
+}
+.album-view-back svg { width:18px; height:18px; }
+.album-view-title {
+  font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:400; flex:1;
+}
+.album-view-scroll { flex:1; overflow-y:auto; }
+</style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="app-logo">Lumi</div>
+      <div class="top-actions">
+        <div class="icon-btn" onclick="toggleSelect()" id="select-btn" title="Select">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="icon-btn" onclick="triggerUpload()" title="Add">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="storage-strip">
+      <span class="storage-label">Storage</span>
+      <div class="storage-track"><div class="storage-fill" id="storage-fill" style="width:0%"></div></div>
+      <span class="storage-used" id="storage-text">Calculating...</span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('gallery',this)">Gallery</button>
+    <button class="tab" onclick="switchTab('albums',this)">Albums</button>
+    <button class="tab" onclick="switchTab('search',this)">Search</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+    <!-- GALLERY PAGE -->
+    <div class="page active" id="page-gallery">
+      <div id="gallery-content"><div class="loader"><div class="spin"></div></div></div>
+    </div>
+
+    <!-- ALBUMS PAGE -->
+    <div class="page" id="page-albums">
+      <div class="albums-grid" id="albums-grid">
+        <div class="album-add" onclick="openNewAlbum()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+          <span>New Album</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH PAGE -->
+    <div class="page" id="page-search">
+      <div class="search-bar">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="date" id="search-date" onchange="searchByDate(this.value)" style="color-scheme:dark;">
+      </div>
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="botnav">
+    <button class="nav-btn active" onclick="switchTab('gallery',this)" id="nav-gallery">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Gallery
+    </button>
+    <button class="nav-btn" onclick="switchTab('albums',this)" id="nav-albums">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Albums
+    </button>
+    <button class="nav-btn" onclick="switchTab('search',this)" id="nav-search">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Date
+    </button>
+  </nav>
+</div>
+
+<!-- SELECT BAR -->
+<div class="select-bar" id="select-bar">
+  <span class="select-count" id="select-count">0 selected</span>
+  <div class="select-acts">
+    <button class="select-act" onclick="addSelectedToAlbum()">Album</button>
+    <button class="select-act danger" onclick="deleteSelected()">Delete</button>
+    <button class="select-act" onclick="cancelSelect()">Cancel</button>
+  </div>
+</div>
+
+<!-- VIEWER -->
+<div id="viewer">
+  <div class="viewer-bar">
+    <div class="viewer-back" onclick="closeViewer()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </div>
+    <div class="viewer-actions">
+      <div class="viewer-act" onclick="deleteCurrentMedia()" title="Delete">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <div class="viewer-act" onclick="addToAlbumSingle()" title="Add to album">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="viewer-media" id="viewer-media">
+    <img id="viewer-img" src="" alt="" style="display:none">
+    <video id="viewer-vid" controls playsinline style="display:none"></video>
+  </div>
+  <div class="viewer-info">
+    <div class="viewer-date" id="viewer-date"></div>
+    <div class="viewer-name" id="viewer-name"></div>
+  </div>
+</div>
+
+<!-- ALBUM VIEW -->
+<div id="album-view">
+  <div class="album-view-bar">
+    <div class="album-view-back" onclick="closeAlbumView()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </div>
+    <div class="album-view-title" id="album-view-title"></div>
+    <div class="icon-btn" onclick="deleteAlbum()" style="color:var(--rose)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </div>
+  </div>
+  <div class="album-view-scroll">
+    <div class="media-grid" id="album-view-grid"></div>
+  </div>
+</div>
+
+<!-- NEW ALBUM MODAL -->
+<div class="modal-overlay" id="album-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Album</div>
+    <input class="modal-input" id="album-name-input" type="text" placeholder="Album name..." maxlength="40">
+    <button class="modal-btn" onclick="createAlbum()">Create Album</button>
+    <button class="modal-cancel" onclick="closeModal('album-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD TO ALBUM MODAL -->
+<div class="modal-overlay" id="add-album-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add to Album</div>
+    <div class="album-pick-list" id="album-pick-list"></div>
+    <button class="modal-cancel" onclick="closeModal('add-album-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- UPLOAD PROGRESS -->
+<div class="upload-progress" id="upload-progress">
+  <div class="progress-info">
+    <div class="progress-label" id="progress-label">Saving...</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- FILE INPUT -->
+<input type="file" id="file-input" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(event)">
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STORAGE ENGINE ──
+// Detects Capacitor native vs PWA and uses appropriate storage
+const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+// IndexedDB for PWA
+const DB_NAME = 'LumiDB', DB_VER = 1;
+let db;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('media')) {
+        const s = d.createObjectStore('media', { keyPath: 'id' });
+        s.createIndex('date', 'date', { unique: false });
+      }
+      if (!d.objectStoreNames.contains('albums')) {
+        d.createObjectStore('albums', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbAdd(store, item) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(item);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbDelete(store, id) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGet(store, id) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(id);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// ── STATE ──
+let allMedia = [];
+let allAlbums = [];
+let currentViewerIdx = 0;
+let viewerList = [];
+let selectMode = false;
+let selectedIds = new Set();
+let currentAlbumId = null;
+let pendingAlbumMedia = null; // for single add
+
+// ── INIT ──
+async function init() {
+  await openDB();
+  await loadMedia();
+  await loadAlbums();
+  updateStorage();
+}
+
+// ── TOAST ──
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── TABS ──
+let currentTab = 'gallery';
+function switchTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (btn.classList.contains('tab')) btn.classList.add('active');
+  document.getElementById('nav-' + tab)?.classList.add('active');
+  currentTab = tab;
+  if (tab === 'albums') renderAlbums();
+}
+
+// ── UPLOAD ──
+function triggerUpload() {
+  document.getElementById('file-input').click();
+}
+
+async function handleFiles(event) {
+  const files = [...event.target.files];
+  if (!files.length) return;
+  event.target.value = '';
+
+  const prog = document.getElementById('upload-progress');
+  const label = document.getElementById('progress-label');
+  const fill = document.getElementById('progress-fill');
+  prog.classList.add('show');
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    label.textContent = `Saving ${i + 1} of ${files.length}...`;
+    fill.style.width = ((i / files.length) * 100) + '%';
+
+    try {
+      const id = 'media_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const isVideo = file.type.startsWith('video/');
+      const dataUrl = await fileToDataUrl(file);
+
+      const item = {
+        id,
+        type: isVideo ? 'video' : 'image',
+        name: file.name,
+        size: file.size,
+        date: new Date().toISOString(),
+        dateStr: new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
+        dataUrl,
+        albums: []
+      };
+
+      await dbAdd('media', item);
+      allMedia.unshift(item);
+    } catch (e) {
+      toast('Failed to save ' + file.name, 'err');
+    }
+  }
+
+  fill.style.width = '100%';
+  setTimeout(() => { prog.classList.remove('show'); fill.style.width = '0%'; }, 600);
+
+  renderGallery();
+  updateStorage();
+  toast(`${files.length} item${files.length > 1 ? 's' : ''} saved ✓`, 'ok');
+}
+
+function fileToDataUrl(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => res(e.target.result);
+    reader.onerror = () => rej(new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── LOAD MEDIA ──
+async function loadMedia() {
+  allMedia = await dbGetAll('media');
+  allMedia.sort((a, b) => new Date(b.date) - new Date(a.date));
+  renderGallery();
+}
+
+// ── RENDER GALLERY ──
+function renderGallery() {
+  const container = document.getElementById('gallery-content');
+  if (!allMedia.length) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">✦</div>
+        <div class="empty-title">Your vault is empty</div>
+        <div class="empty-sub">Tap the + button to add<br>photos and videos from your gallery</div>
+      </div>`;
+    return;
+  }
+
+  // Group by date
+  const grouped = {};
+  allMedia.forEach(m => {
+    const d = new Date(m.date).toDateString();
+    if (!grouped[d]) grouped[d] = [];
+    grouped[d].push(m);
+  });
+
+  let html = '';
+  Object.entries(grouped).forEach(([dateStr, items]) => {
+    const pretty = new Date(dateStr).toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    html += `<div class="date-section">
+      <div class="date-label">${pretty}</div>
+      <div class="media-grid">`;
+    items.forEach(m => {
+      html += mediaThumb(m);
+    });
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function mediaThumb(m, listRef) {
+  const isVideo = m.type === 'video';
+  const selClass = selectedIds.has(m.id) ? 'selected' : '';
+  return `<div class="media-item ${selClass}" id="item-${m.id}" onclick="handleItemClick('${m.id}')">
+    ${isVideo
+      ? `<video src="${m.dataUrl}" preload="metadata" muted playsinline></video>
+         <div class="vid-badge"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>`
+      : `<img src="${m.dataUrl}" loading="lazy" alt="">`}
+    <div class="select-ring"></div>
+    <div class="check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>
+  </div>`;
+}
+
+// ── ITEM CLICK ──
+function handleItemClick(id) {
+  if (selectMode) {
+    toggleSelectItem(id);
+  } else {
+    openViewer(id, allMedia);
+  }
+}
+
+// ── SELECT MODE ──
+function toggleSelect() {
+  selectMode = !selectMode;
+  if (!selectMode) cancelSelect();
+  else {
+    document.getElementById('select-bar').classList.add('show');
+    updateSelectCount();
+  }
+}
+
+function cancelSelect() {
+  selectMode = false;
+  selectedIds.clear();
+  document.getElementById('select-bar').classList.remove('show');
+  document.querySelectorAll('.media-item').forEach(el => el.classList.remove('selected'));
+}
+
+function toggleSelectItem(id) {
+  const el = document.getElementById('item-' + id);
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    el?.classList.remove('selected');
+  } else {
+    selectedIds.add(id);
+    el?.classList.add('selected');
+  }
+  updateSelectCount();
+}
+
+function updateSelectCount() {
+  document.getElementById('select-count').textContent = selectedIds.size + ' selected';
+}
+
+async function deleteSelected() {
+  if (!selectedIds.size) return;
+  if (!confirm(`Delete ${selectedIds.size} item${selectedIds.size > 1 ? 's' : ''}?`)) return;
+  for (const id of selectedIds) {
+    await dbDelete('media', id);
+    allMedia = allMedia.filter(m => m.id !== id);
+  }
+  cancelSelect();
+  renderGallery();
+  renderAlbums();
+  updateStorage();
+  toast('Deleted', 'ok');
+}
+
+function addSelectedToAlbum() {
+  if (!selectedIds.size) return;
+  pendingAlbumMedia = [...selectedIds];
+  openAddToAlbum();
+}
+
+// ── VIEWER ── 
+function openViewer(id, list) {
+  viewerList = list;
+  currentViewerIdx = list.findIndex(m => m.id === id);
+  showViewerItem();
+  document.getElementById('viewer').classList.add('open');
+
+  // Swipe support
+  let startX = 0;
+  const media = document.getElementById('viewer-media');
+  media.ontouchstart = e => { startX = e.touches[0].clientX; };
+  media.ontouchend = e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 60) {
+      if (dx < 0 && currentViewerIdx < viewerList.length - 1) { currentViewerIdx++; showViewerItem(); }
+      else if (dx > 0 && currentViewerIdx > 0) { currentViewerIdx--; showViewerItem(); }
+    }
+  };
+}
+
+function showViewerItem() {
+  const m = viewerList[currentViewerIdx];
+  if (!m) return;
+  const img = document.getElementById('viewer-img');
+  const vid = document.getElementById('viewer-vid');
+  if (m.type === 'video') {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.src = m.dataUrl;
+  } else {
+    vid.style.display = 'none'; vid.pause(); vid.src = '';
+    img.style.display = 'block';
+    img.src = m.dataUrl;
+  }
+  document.getElementById('viewer-date').textContent = new Date(m.date).toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  document.getElementById('viewer-name').textContent = m.name;
+}
+
+function closeViewer() {
+  document.getElementById('viewer').classList.remove('open');
+  const vid = document.getElementById('viewer-vid');
+  vid.pause(); vid.src = '';
+}
+
+async function deleteCurrentMedia() {
+  const m = viewerList[currentViewerIdx];
+  if (!m) return;
+  if (!confirm('Delete this item?')) return;
+  await dbDelete('media', m.id);
+  allMedia = allMedia.filter(x => x.id !== m.id);
+  viewerList.splice(currentViewerIdx, 1);
+  if (!viewerList.length) { closeViewer(); renderGallery(); return; }
+  if (currentViewerIdx >= viewerList.length) currentViewerIdx = viewerList.length - 1;
+  showViewerItem();
+  renderGallery();
+  updateStorage();
+  toast('Deleted', 'ok');
+}
+
+function addToAlbumSingle() {
+  const m = viewerList[currentViewerIdx];
+  if (!m) return;
+  pendingAlbumMedia = [m.id];
+  openAddToAlbum();
+}
+
+// ── ALBUMS ──
+async function loadAlbums() {
+  allAlbums = await dbGetAll('albums');
+  renderAlbums();
+}
+
+function renderAlbums() {
+  const grid = document.getElementById('albums-grid');
+  let html = `<div class="album-add" onclick="openNewAlbum()">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+    <span>New Album</span>
+  </div>`;
+
+  allAlbums.forEach(album => {
+    const items = allMedia.filter(m => m.albums && m.albums.includes(album.id));
+    const thumbs = items.slice(0, 4);
+    let thumbHtml = '';
+    if (thumbs.length === 0) {
+      thumbHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="32" height="32"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>`;
+    } else if (thumbs.length < 4) {
+      thumbHtml = `<img src="${thumbs[0].dataUrl}" alt="">`;
+    } else {
+      thumbHtml = `<div class="album-thumb-grid">${thumbs.map(t => `<img src="${t.dataUrl}" alt="">`).join('')}</div>`;
+    }
+
+    html += `<div class="album-card" onclick="openAlbumView('${album.id}')">
+      <div class="album-thumb">${thumbHtml}</div>
+      <div class="album-info">
+        <div class="album-name">${album.name}</div>
+        <div class="album-count">${items.length} item${items.length !== 1 ? 's' : ''}</div>
+      </div>
+    </div>`;
+  });
+
+  grid.innerHTML = html;
+}
+
+function openNewAlbum() {
+  document.getElementById('album-name-input').value = '';
+  document.getElementById('album-modal').classList.add('open');
+}
+
+async function createAlbum() {
+  const name = document.getElementById('album-name-input').value.trim();
+  if (!name) { toast('Enter an album name', 'err'); return; }
+  const album = { id: 'album_' + Date.now(), name, created: new Date().toISOString() };
+  await dbAdd('albums', album);
+  allAlbums.push(album);
+  closeModal('album-modal');
+  renderAlbums();
+  toast('Album created ✓', 'ok');
+}
+
+function openAlbumView(albumId) {
+  currentAlbumId = albumId;
+  const album = allAlbums.find(a => a.id === albumId);
+  if (!album) return;
+  const items = allMedia.filter(m => m.albums && m.albums.includes(albumId));
+  document.getElementById('album-view-title').textContent = album.name;
+  const grid = document.getElementById('album-view-grid');
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:span 3"><div class="empty-icon">✦</div><div class="empty-title">Empty album</div><div class="empty-sub">Add photos from the gallery</div></div>`;
+  } else {
+    grid.innerHTML = items.map(m => `<div class="media-item" onclick="openViewer('${m.id}',allMedia)">
+      ${m.type === 'video'
+        ? `<video src="${m.dataUrl}" preload="metadata" muted playsinline></video><div class="vid-badge"><svg fill="currentColor" viewBox="0 0 24 24" width="9" height="9"><path d="M8 5v14l11-7z"/></svg></div>`
+        : `<img src="${m.dataUrl}" loading="lazy" alt="">`}
+    </div>`).join('');
+  }
+  document.getElementById('album-view').classList.add('open');
+}
+
+function closeAlbumView() {
+  document.getElementById('album-view').classList.remove('open');
+  currentAlbumId = null;
+}
+
+async function deleteAlbum() {
+  if (!currentAlbumId) return;
+  const album = allAlbums.find(a => a.id === currentAlbumId);
+  if (!confirm(`Delete album "${album?.name}"? Media will not be deleted.`)) return;
+  await dbDelete('albums', currentAlbumId);
+  allAlbums = allAlbums.filter(a => a.id !== currentAlbumId);
+  // Remove album ref from media
+  for (const m of allMedia) {
+    if (m.albums && m.albums.includes(currentAlbumId)) {
+      m.albums = m.albums.filter(id => id !== currentAlbumId);
+      await dbAdd('media', m);
+    }
+  }
+  closeAlbumView();
+  renderAlbums();
+  toast('Album deleted', 'ok');
+}
+
+function openAddToAlbum() {
+  const list = document.getElementById('album-pick-list');
+  if (!allAlbums.length) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:0.85rem">No albums yet. Create one first.</div>`;
+  } else {
+    list.innerHTML = allAlbums.map(album => {
+      const items = allMedia.filter(m => m.albums && m.albums.includes(album.id));
+      const thumb = items[0];
+      return `<div class="album-pick-item" onclick="addToAlbum('${album.id}')">
+        <div class="album-pick-thumb">
+          ${thumb ? `<img src="${thumb.dataUrl}" alt="">` : `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`}
+        </div>
+        <div>
+          <div class="album-pick-name">${album.name}</div>
+          <div class="album-pick-count">${items.length} items</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('add-album-modal').classList.add('open');
+}
+
+async function addToAlbum(albumId) {
+  if (!pendingAlbumMedia) return;
+  for (const id of pendingAlbumMedia) {
+    const m = allMedia.find(x => x.id === id);
+    if (!m) continue;
+    if (!m.albums) m.albums = [];
+    if (!m.albums.includes(albumId)) {
+      m.albums.push(albumId);
+      await dbAdd('media', m);
+    }
+  }
+  pendingAlbumMedia = null;
+  closeModal('add-album-modal');
+  cancelSelect();
+  renderAlbums();
+  toast('Added to album ✓', 'ok');
+}
+
+// ── SEARCH ──
+function searchByDate(dateStr) {
+  const results = document.getElementById('search-results');
+  if (!dateStr) { results.innerHTML = ''; return; }
+  const target = new Date(dateStr).toDateString();
+  const found = allMedia.filter(m => new Date(m.date).toDateString() === target);
+  if (!found.length) {
+    results.innerHTML = `<div class="empty"><div class="empty-icon">✦</div><div class="empty-title">Nothing found</div><div class="empty-sub">No media from this date</div></div>`;
+    return;
+  }
+  results.innerHTML = `<div class="grid-header"><span class="grid-title">${found.length} item${found.length!==1?'s':''}</span></div>
+    <div class="media-grid">${found.map(m => `<div class="media-item" onclick="openViewer('${m.id}',allMedia)">
+      ${m.type==='video'?`<video src="${m.dataUrl}" preload="metadata" muted playsinline></video><div class="vid-badge"><svg fill="currentColor" viewBox="0 0 24 24" width="9" height="9"><path d="M8 5v14l11-7z"/></svg></div>`:`<img src="${m.dataUrl}" loading="lazy" alt="">`}
+    </div>`).join('')}</div>`;
+}
+
+// ── STORAGE ──
+async function updateStorage() {
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const est = await navigator.storage.estimate();
+      const used = est.usage || 0;
+      const quota = est.quota || 1;
+      const pct = Math.min((used / quota) * 100, 100);
+      const usedMB = (used / 1024 / 1024).toFixed(1);
+      const quotaGB = (quota / 1024 / 1024 / 1024).toFixed(1);
+      document.getElementById('storage-fill').style.width = pct + '%';
+      document.getElementById('storage-text').textContent = `${usedMB}MB / ${quotaGB}GB`;
+    } else {
+      // Estimate from media data
+      let total = allMedia.reduce((s, m) => s + (m.dataUrl?.length || 0) * 0.75, 0);
+      document.getElementById('storage-text').textContent = (total / 1024 / 1024).toFixed(1) + 'MB used';
+      document.getElementById('storage-fill').style.width = '0%';
+    }
+  } catch(e) {
+    document.getElementById('storage-text').textContent = allMedia.length + ' items';
+  }
+}
+
+// ── MODAL ──
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close modals on backdrop tap
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('open');
+  });
+});
+
+// ── START ──
+init();
+</script>
+</body>
+</html>
